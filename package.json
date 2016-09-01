@@ -28,7 +28,10 @@
     "babel-loader": "^6.2.5",
     "es6-promise": "^3.2.1",
     "grunt": "^1.0.1",
+    "grunt-contrib-uglify": "^2.0.0",
+    "grunt-contrib-watch": "^1.0.0",
     "grunt-webpack": "^1.0.14",
-    "webpack": "^1.13.2"
+    "webpack": "^1.13.2",
+    "webpack-dev-server": "^1.15.1"
   }
 }
