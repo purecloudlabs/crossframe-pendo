@@ -1,0 +1,32 @@
+{
+  "name": "crossframe-pendo",
+  "description": "Allows Pendo guides to work cross-frame",
+  "main": "dist/crossframe-pendo.min.js",
+  "moduleType": [
+    "globals",
+    "amd",
+    "node"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "keywords": [
+    "Pendo",
+    "guide",
+    "walkthrough",
+    "iframe"
+  ],
+  "authors": [
+    "Mike McAuley <mike.mcauley@inin.com>"
+  ],
+  "homepage": "https://github.com/MyPureCloud/crossframe-pendo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MyPureCloud/crossframe-pendo.git"
+  }
+}
