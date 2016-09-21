@@ -22,7 +22,8 @@ module.exports = function (grunt) {
             query: {
               plugins: [
                 'transform-es2015-block-scoping',
-                'transform-es2015-for-of'
+                'transform-es2015-for-of',
+                'transform-es2015-parameters'
               ]
             }
           }]
