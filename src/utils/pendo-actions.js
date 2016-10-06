@@ -4,27 +4,51 @@ let Promise = require('es6-promise').Promise;
 const WAIT_FREQUENCY = 250;
 const WAIT_TIMEOUT = 10000;
 
+// returns a promise to be resolved by guidesLoaded event handler
+let guidesMonitor = (function () {
+  let eventHandlerRegistered = false;
+  let deferreds = [];
+  return function () {
+    if (!eventHandlerRegistered) {
+      registerEventHandler('guidesLoaded', function (pendo) {
+        for (let deferred of deferreds) {
+          deferred.resolve(pendo.guides);
+        }
+        deferreds = [];
+      });
+      eventHandlerRegistered = true;
+    }
+    return new Promise(function (resolve) {
+      deferreds.push({resolve: resolve});
+    });
+  }
+})();
+
 // wrap pendo.findGuideById() in a promise
 function findGuideById (id) {
-  return waitForPendo()
-  .then(function (pendo) {
-    return pendo.findGuideById(id);
+  return getGuides()
+  .then(function () {
+    return window.pendo.findGuideById(id);
   });
 }
 
 // wrap pendo.findGuideByName() in a promise
 function findGuideByName (name) {
-  return waitForPendo()
-  .then(function (pendo) {
-    return pendo.findGuideByName(name);
+  return getGuides()
+  .then(function () {
+    return window.pendo.findGuideByName(name);
   });
 }
 
-// resolve to pendo.guides once it's defined
+// resolve to guides on initial load, or after next guidesLoaded event
 function getGuides () {
   return waitForPendo()
   .then(function (pendo) {
-    return pendo.guides;
+    if (pendo.guides && pendo.guides.length) {
+      return pendo.guides;
+    } else {
+      return guidesMonitor();
+    }
   });
 }
 
@@ -38,6 +62,16 @@ function launchGuide (guideId) {
     } else {
       return Promise.reject(new Error('Unable to launch guide'));
     }
+  });
+}
+
+// wrap pendo.events API in a promise
+function registerEventHandler (eventName, eventHandler) {
+  return waitForPendo()
+  .then(function (pendo) {
+    pendo.events[eventName](function () {
+      eventHandler(pendo);
+    });
   });
 }
 
@@ -55,10 +89,10 @@ function showStep (guideId, stepId) {
   });
 }
 
-// resolve to Pendo library once it has loaded (along with available guides)
+// resolve to Pendo library once it has loaded
 function waitForPendo (elapsedTime = 0) {
   return new Promise(function (resolve, reject) {
-    if (window.pendo && window.pendo.guides) {
+    if (window.pendo && window.pendo.initialize) {
       resolve(window.pendo);
     } else {
       if (elapsedTime >= WAIT_TIMEOUT) {
@@ -78,5 +112,6 @@ module.exports = {
   findGuideByName: findGuideByName,
   getGuides: getGuides,
   launchGuide: launchGuide,
+  registerEventHandler: registerEventHandler,
   showStep: showStep
 }
