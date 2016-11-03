@@ -1498,6 +1498,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	// resolve/reject methods for promises to be fulfilled by RPC responses
 	var responseCallbacks = [];
 
+	// keep track of unfulfilled RPC requests
+	var activeRequests = [];
+
 	// build list of all immediate parent and/or child frames
 	function getAdjacentFrames() {
 	  var adjacentFrames = [];
@@ -1551,10 +1554,22 @@ return /******/ (function(modules) { // webpackBootstrap
 	// handle incoming RPC request
 	function handleRpcRequest(messageEvent) {
 	  var messageData = messageEvent.data;
+	  var thisRequest = {
+	    source: messageEvent.source,
+	    method: messageData.method,
+	    args: messageData.args
+	  };
+	  activeRequests.push(thisRequest);
 	  pendoActions[messageData.method].apply(null, messageData.args).then(function (result) {
 	    sendRpcResponse(messageEvent.source, messageData.id, true);
+	    activeRequests = activeRequests.filter(function (request) {
+	      return request !== thisRequest;
+	    });
 	  }).catch(function (error) {
 	    sendRpcResponse(messageEvent.source, messageData.id, false);
+	    activeRequests = activeRequests.filter(function (request) {
+	      return request !== thisRequest;
+	    });
 	  });
 	}
 
@@ -1608,7 +1623,50 @@ return /******/ (function(modules) { // webpackBootstrap
 	function tryAdjacentFrames(method, args) {
 	  return new Promise(function (resolve, reject) {
 	    var failedAttempts = 0;
-	    var adjacentFrames = getAdjacentFrames();
+	    var adjacentFrames = getAdjacentFrames().filter(function (frame) {
+
+	      // prevent sending same request back to original window
+	      var _iteratorNormalCompletion2 = true;
+	      var _didIteratorError2 = false;
+	      var _iteratorError2 = undefined;
+
+	      try {
+	        for (var _iterator2 = activeRequests[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+	          var activeRequest = _step2.value;
+
+	          if (activeRequest.source === frame) {
+	            if (activeRequest.method === method) {
+	              if (activeRequest.args.length === args.length) {
+	                var argsMatch = false;
+	                for (var i = 0; i < args.length; i++) {
+	                  if (activeRequests.args[i] === args[i]) {
+	                    argsMatch = true;
+	                  }
+	                }
+	                if (argsMatch) {
+	                  return false;
+	                }
+	              }
+	            }
+	          }
+	        }
+	      } catch (err) {
+	        _didIteratorError2 = true;
+	        _iteratorError2 = err;
+	      } finally {
+	        try {
+	          if (!_iteratorNormalCompletion2 && _iterator2.return) {
+	            _iterator2.return();
+	          }
+	        } finally {
+	          if (_didIteratorError2) {
+	            throw _iteratorError2;
+	          }
+	        }
+	      }
+
+	      return true;
+	    });
 	    adjacentFrames.forEach(function (frame) {
 	      sendRpcRequest(frame, method, args).then(function (response) {
 	        resolve();

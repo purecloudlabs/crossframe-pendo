@@ -8,6 +8,9 @@ const RPC_TIMEOUT = 5000;
 // resolve/reject methods for promises to be fulfilled by RPC responses
 let responseCallbacks = []
 
+// keep track of unfulfilled RPC requests
+let activeRequests = []
+
 // build list of all immediate parent and/or child frames
 function getAdjacentFrames () {
   let adjacentFrames = [];
@@ -40,12 +43,24 @@ function handleMessage (messageEvent) {
 // handle incoming RPC request
 function handleRpcRequest (messageEvent) {
   let messageData = messageEvent.data;
+  let thisRequest = {
+    source: messageEvent.source,
+    method: messageData.method,
+    args: messageData.args
+  }
+  activeRequests.push(thisRequest);
   pendoActions[messageData.method].apply(null, messageData.args)
   .then(function (result) {
     sendRpcResponse(messageEvent.source, messageData.id, true);
+    activeRequests = activeRequests.filter(function (request) {
+      return request !== thisRequest;
+    });
   })
   .catch(function (error) {
     sendRpcResponse(messageEvent.source, messageData.id, false);
+    activeRequests = activeRequests.filter(function (request) {
+      return request !== thisRequest;
+    });
   });
 }
 
@@ -99,7 +114,29 @@ function sendRpcResponse (frame, respondingTo, didSucceed) {
 function tryAdjacentFrames (method, args) {
   return new Promise(function (resolve, reject) {
     let failedAttempts = 0;
-    let adjacentFrames = getAdjacentFrames();
+    let adjacentFrames = getAdjacentFrames().filter(function (frame) {
+
+      // prevent sending same request back to original window
+      for (let activeRequest of activeRequests) {
+        if (activeRequest.source === frame) {
+          if (activeRequest.method === method) {
+            if (activeRequest.args.length === args.length) {
+              let argsMatch = false;
+              for (let i = 0; i < args.length; i++) {
+                if (activeRequests.args[i] === args[i]) {
+                  argsMatch = true;
+                }
+              }
+              if (argsMatch) {
+                return false;
+              }
+            }
+          }
+        }
+      }
+
+      return true;
+    });
     adjacentFrames.forEach(function (frame) {
       sendRpcRequest(frame, method, args)
       .then(function (response) {
