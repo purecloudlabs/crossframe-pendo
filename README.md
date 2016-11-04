@@ -6,13 +6,15 @@ The minified build is just 13KB, and requires very little configuration, so it s
 
 # Installation
 
-The simplest way to get crossframe-pendo is with [Bower](http://bower.io). Just run `bower install crossframe-pendo` to add it to your project. Be sure to include the script on all pages of your application, across all iframes.
+The simplest way to get crossframe-pendo is with [Bower](http://bower.io). Just run `bower install crossframe-pendo` to add it to your project. Be sure to include the script on all pages of your application, across all iframes. Any configuration of iframes should be supported (parent-child, deeply nested, siblings with shared parent, etc.), so long as crossframe-pendo is initialized in every window.
 
 # Configuration
 
 ## Initialization
 
 The crossframe-pendo module will be accessible via `window.crossframePendo`. Use the `initialize()` method to have it bootstrap itself. Do this in each iframe, and you'll be ready to go!
+
+The `initialize()` method returns a promise, which will resolve once the Pendo client library loads and crossframe-pendo has completed setup.
 
 ## Options
 
@@ -46,6 +48,34 @@ window.crossframePendo.initialize({
     var guide = step.getGuide();
     // the world's your oyster...
   }
+});
+```
+
+## Asynchronous Guide Lookup
+
+Included in crossframe-pendo are some useful helper functions which allow for looking up Pendo guides asynchronously. Each of these functions return a promise, greatly simplifying the process of programmatically acccessing Pendo guides when the load state of the client library cannot be guaranteed.
+
+### findGuideById
+
+```javascript
+window.crossframePendo.findGuideById("24601").then(function (guide) {
+  // here's your guide
+});
+```
+
+### findGuideByName
+
+```javascript
+window.crossframePendo.findGuideByName("Jean Valjean").then(function (guide) {
+  // here's your guide
+});
+```
+
+### getGuides
+
+```javascript
+window.crossframePendo.getGuides().then(function (guides) {
+  // here's an array of all available guides
 });
 ```
 
