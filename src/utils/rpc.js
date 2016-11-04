@@ -137,6 +137,9 @@ function tryAdjacentFrames (method, args) {
 
       return true;
     });
+    if (!adjacentFrames.length) {
+      reject();
+    }
     adjacentFrames.forEach(function (frame) {
       sendRpcRequest(frame, method, args)
       .then(function (response) {

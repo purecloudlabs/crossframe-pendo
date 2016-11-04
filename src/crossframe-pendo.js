@@ -4,6 +4,7 @@ let rpc = require('./utils/rpc');
 
 // default configuration options
 let config = {
+  errorCallback: function () {},
   stepAdvanceCallback: function () {}
 }
 
@@ -41,7 +42,13 @@ function processGuides (guides) {
 function registerGuideCallbacks (guide) {
   guide.after('launch', function () {
     if (!guide.isShown()) {
-      rpc.tryAdjacentFrames('launchGuide', [guide.id]);
+      rpc.tryAdjacentFrames('launchGuide', [guide.id])
+      .catch(function () {
+        config.errorCallback({
+          errorType: 'GUIDE.LAUNCH',
+          guideId: guide.id
+        });
+      });
     }
   });
   for (let step of guide.steps) {
@@ -49,7 +56,14 @@ function registerGuideCallbacks (guide) {
     let nextStep = guide.steps[stepPosition]; // same numeral b/c 0-indexed
     let handleStepAdvancement = function () {
       if (nextStep && !nextStep.isShown()) {
-        rpc.tryAdjacentFrames('showStep', [guide.id, nextStep.id]);
+        rpc.tryAdjacentFrames('showStep', [guide.id, nextStep.id])
+        .catch(function () {
+          config.errorCallback({
+            errorType: 'STEP.ADVANCE',
+            guideId: guide.id,
+            stepId: step.id
+          });
+        });
       }
       config.stepAdvanceCallback(step);
     }
