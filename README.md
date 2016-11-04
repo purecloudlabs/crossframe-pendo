@@ -16,7 +16,29 @@ The crossframe-pendo module will be accessible via `window.crossframePendo`. Use
 
 ## Options
 
-If desired, you can specify a callback function to run after the user advances any guide, to allow for custom logic. To do this, pass in a configuration object as the first argument to the `initialize()` method, with your callback on the `stepAdvanceCallback` property:
+You may optionally supply a configuration object when initializing crossframe-pendo, with one or more of the following options:
+
+### errorCallback
+
+This function will be executed when crossframe-pendo is unable to launch or advance a guide in any available iframe. An error object will be passed in as the first argument.
+
+Example:
+
+```javascript
+window.crossframePendo.initialize({
+  errorCallback: function (error) {
+  	// handle error
+  }
+});
+```
+
+The error object will have an `errorType` property of either `"GUIDE.LAUNCH"` or `"STEP.ADVANCE"`, as well as `guideId` and `stepId` properties, as appropriate for the error type.
+
+### stepAdvanceCallback
+
+This function will be executed after the user advances each step in any walkthrough. The Pendo step object corresponding to the just-advanced guide will be passed in as the first argument.
+
+Example:
 
 ```javascript
 window.crossframePendo.initialize({
@@ -26,7 +48,6 @@ window.crossframePendo.initialize({
   }
 });
 ```
-This callback will receive a Pendo step object corresponding to the guide the user has just advanced.
 
 ## Contributing
 
