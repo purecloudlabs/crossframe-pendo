@@ -60,6 +60,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	// default configuration options
 	var config = {
+	  errorCallback: function () {},
 	  stepAdvanceCallback: function () {}
 	};
 
@@ -117,7 +118,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	function registerGuideCallbacks(guide) {
 	  guide.after('launch', function () {
 	    if (!guide.isShown()) {
-	      rpc.tryAdjacentFrames('launchGuide', [guide.id]);
+	      rpc.tryAdjacentFrames('launchGuide', [guide.id]).catch(function () {
+	        config.errorCallback({
+	          errorType: 'GUIDE.LAUNCH',
+	          guideId: guide.id
+	        });
+	      });
 	    }
 	  });
 
@@ -126,7 +132,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var nextStep = guide.steps[stepPosition]; // same numeral b/c 0-indexed
 	    var handleStepAdvancement = function () {
 	      if (nextStep && !nextStep.isShown()) {
-	        rpc.tryAdjacentFrames('showStep', [guide.id, nextStep.id]);
+	        rpc.tryAdjacentFrames('showStep', [guide.id, nextStep.id]).catch(function () {
+	          config.errorCallback({
+	            errorType: 'STEP.ADVANCE',
+	            guideId: guide.id,
+	            stepId: step.id
+	          });
+	        });
 	      }
 	      config.stepAdvanceCallback(step);
 	    };
@@ -1667,6 +1679,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	      return true;
 	    });
+	    if (!adjacentFrames.length) {
+	      reject();
+	    }
 	    adjacentFrames.forEach(function (frame) {
 	      sendRpcRequest(frame, method, args).then(function (response) {
 	        resolve();
