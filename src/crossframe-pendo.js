@@ -21,22 +21,14 @@ let initialize = (function () {
       initialized = true;
       return pendoActions.getGuides()
       .then(function (guides) {
-        processGuides(guides); // initial guides
+        guides.forEach(registerGuideCallbacks); // initial guides
         pendoActions.registerEventHandler('guidesLoaded', function (pendo) {
-          processGuides(pendo.guides); // reloaded guides
+          pendo.guides.forEach(registerGuideCallbacks);  // reloaded guides
         });
       });
     }
   }
 })();
-
-// loop through guides, resume if necessary & register callbacks
-function processGuides (guides) {
-  for (let guide of guides) {
-    resumeGuide(guide);
-    registerGuideCallbacks(guide);
-  }
-}
 
 // register callbacks to advance guide in another frame when necessary
 function registerGuideCallbacks (guide) {
@@ -79,17 +71,6 @@ function registerGuideCallbacks (guide) {
           }, 0);
         }
       });
-    }
-  }
-}
-
-// attempt to resume in-progress guides that may have stalled
-function resumeGuide (guide) {
-  if (guide.isInProgress() && !guide.isShown()) {
-    for (let step of guide.steps) {
-      if (!step.seenState || !step.seenState === 'advanced') {
-        step.show();
-      }
     }
   }
 }
