@@ -76,43 +76,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	      }
 	      initialized = true;
 	      return pendoActions.getGuides().then(function (guides) {
-	        processGuides(guides); // initial guides
+	        guides.forEach(registerGuideCallbacks); // initial guides
 	        pendoActions.registerEventHandler('guidesLoaded', function (pendo) {
-	          processGuides(pendo.guides); // reloaded guides
+	          pendo.guides.forEach(registerGuideCallbacks); // reloaded guides
 	        });
 	      });
 	    }
 	  };
 	}();
-
-	// loop through guides, resume if necessary & register callbacks
-	function processGuides(guides) {
-	  var _iteratorNormalCompletion = true;
-	  var _didIteratorError = false;
-	  var _iteratorError = undefined;
-
-	  try {
-	    for (var _iterator = guides[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-	      var guide = _step.value;
-
-	      resumeGuide(guide);
-	      registerGuideCallbacks(guide);
-	    }
-	  } catch (err) {
-	    _didIteratorError = true;
-	    _iteratorError = err;
-	  } finally {
-	    try {
-	      if (!_iteratorNormalCompletion && _iterator.return) {
-	        _iterator.return();
-	      }
-	    } finally {
-	      if (_didIteratorError) {
-	        throw _iteratorError;
-	      }
-	    }
-	  }
-	}
 
 	// register callbacks to advance guide in another frame when necessary
 	function registerGuideCallbacks(guide) {
@@ -158,59 +129,27 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	  };
 
-	  var _iteratorNormalCompletion2 = true;
-	  var _didIteratorError2 = false;
-	  var _iteratorError2 = undefined;
+	  var _iteratorNormalCompletion = true;
+	  var _didIteratorError = false;
+	  var _iteratorError = undefined;
 
 	  try {
-	    for (var _iterator2 = guide.steps[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-	      var step = _step2.value;
+	    for (var _iterator = guide.steps[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+	      var step = _step.value;
 
 	      _loop(step);
 	    }
 	  } catch (err) {
-	    _didIteratorError2 = true;
-	    _iteratorError2 = err;
+	    _didIteratorError = true;
+	    _iteratorError = err;
 	  } finally {
 	    try {
-	      if (!_iteratorNormalCompletion2 && _iterator2.return) {
-	        _iterator2.return();
+	      if (!_iteratorNormalCompletion && _iterator.return) {
+	        _iterator.return();
 	      }
 	    } finally {
-	      if (_didIteratorError2) {
-	        throw _iteratorError2;
-	      }
-	    }
-	  }
-	}
-
-	// attempt to resume in-progress guides that may have stalled
-	function resumeGuide(guide) {
-	  if (guide.isInProgress() && !guide.isShown()) {
-	    var _iteratorNormalCompletion3 = true;
-	    var _didIteratorError3 = false;
-	    var _iteratorError3 = undefined;
-
-	    try {
-	      for (var _iterator3 = guide.steps[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-	        var step = _step3.value;
-
-	        if (!step.seenState || !step.seenState === 'advanced') {
-	          step.show();
-	        }
-	      }
-	    } catch (err) {
-	      _didIteratorError3 = true;
-	      _iteratorError3 = err;
-	    } finally {
-	      try {
-	        if (!_iteratorNormalCompletion3 && _iterator3.return) {
-	          _iterator3.return();
-	        }
-	      } finally {
-	        if (_didIteratorError3) {
-	          throw _iteratorError3;
-	        }
+	      if (_didIteratorError) {
+	        throw _iteratorError;
 	      }
 	    }
 	  }
