@@ -1,6 +1,6 @@
-let pendoActions = require('./utils/pendo-actions');
+let pendoActions = require('./lib/pendo-actions');
 let Promise = require('es6-promise').Promise;
-let rpc = require('./utils/rpc');
+let rpc = require('./lib/rpc');
 
 // default configuration options
 let config = {
