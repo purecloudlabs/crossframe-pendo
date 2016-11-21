@@ -21,7 +21,9 @@ module.exports = function (grunt) {
             loader: 'babel-loader',
             query: {
               plugins: [
+                'transform-es2015-arrow-functions',
                 'transform-es2015-block-scoping',
+                'transform-es2015-classes',
                 'transform-es2015-for-of',
                 'transform-es2015-parameters'
               ]
