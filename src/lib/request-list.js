@@ -19,7 +19,7 @@ class RequestList {
       let methodsMatch = thisRequest.method === request.method;
       let argsMatch = thisRequest.argsMatch(request.args);
       if (methodsMatch && argsMatch) {
-        return myRequest;
+        return thisRequest;
       }
     }
   }
