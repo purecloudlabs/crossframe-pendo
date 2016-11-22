@@ -33,7 +33,9 @@ let initialize = (function () {
 // register callbacks to advance guide in another frame when necessary
 function registerGuideCallbacks (guide) {
   guide.after('launch', function () {
-    if (!guide.isShown()) {
+    if (guide.isShown()) {
+      rpc.resolveRequest('launchGuide', [guide.id]);
+    } else {
       rpc.tryAdjacentFrames('launchGuide', [guide.id])
       .catch(function () {
         config.errorCallback({
@@ -44,11 +46,11 @@ function registerGuideCallbacks (guide) {
     }
   });
   for (let step of guide.steps) {
-    let stepPosition = guide.getPositionOfStep(step); // 1-indexed
-    let nextStep = guide.steps[stepPosition]; // same numeral b/c 0-indexed
-    let handleStepAdvancement = function () {
-      if (nextStep && !nextStep.isShown()) {
-        rpc.tryAdjacentFrames('showStep', [guide.id, nextStep.id])
+    step.after('show', function () {
+      if (step.isShown()) {
+        rpc.resolveRequest('showStep', [guide.id, step.id]);
+      } else {
+        rpc.tryAdjacentFrames('showStep', [guide.id, step.id])
         .catch(function () {
           config.errorCallback({
             errorType: 'STEP.ADVANCE',
@@ -57,17 +59,16 @@ function registerGuideCallbacks (guide) {
           });
         });
       }
-      config.stepAdvanceCallback(step);
-    }
+    });
     if (step.type === 'tooltip') {
       step.after('advance', function () {
-        handleStepAdvancement();
+        config.stepAdvanceCallback(step);
       });
     } else { // lightbox & banner steps
       step.after('hide', function () {
         if (step.seenState === 'active') {
           setTimeout(function () {
-            handleStepAdvancement();
+            config.stepAdvanceCallback(step);
           }, 0);
         }
       });
