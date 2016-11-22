@@ -107,6 +107,9 @@ function sendRpcResponse (frame, method, args, didSucceed) {
 // attempt rpc in all adjacent frames, resolve on any successful attempt
 function tryAdjacentFrames (method, args, timeout) {
   let requestAttrs = {method: method, args: args};
+  if (existingOutgoingRequest = outgoingRequests.find(requestAttrs)) {
+    return existingOutgoingRequest.promise;
+  }
   let originalIncomingRequest = incomingRequests.find(requestAttrs);
   let frames = getAdjacentFrames().filter(function (adjacentFrame) {
     if (originalIncomingRequest) {
