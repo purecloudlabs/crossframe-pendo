@@ -32,6 +32,19 @@ let initialize = (function () {
 
 // register callbacks to advance guide in another frame when necessary
 function registerGuideCallbacks (guide) {
+
+  // resolve outstanding requests for guides/steps already visible
+  if (guide.isShown()) {
+    for (let step of guide.steps) {
+      if (step.isShown()) {
+        rpc.resolveRequest('showStep', [guide.id, step.id]);
+        if (guide.getPositionOfStep(step) === 1) {
+          rpc.resolveRequest('launchGuide', [guide.id]);
+        }
+      }
+    }
+  }
+
   guide.after('launch', function () {
     if (guide.isShown()) {
       rpc.resolveRequest('launchGuide', [guide.id]);
