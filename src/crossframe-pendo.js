@@ -38,8 +38,12 @@ function registerGuideCallbacks (guide) {
     for (let step of guide.steps) {
       if (step.isShown()) {
         rpc.resolveRequest('showStep', [guide.id, step.id]);
-        if (guide.getPositionOfStep(step) === 1) {
+        let stepPosition = guide.getPositionOfStep(step);
+        if (stepPosition === 1) {
           rpc.resolveRequest('launchGuide', [guide.id]);
+        } else {
+          let prevStep = guide.steps[stepPosition - 2]; // -2 b/c array 0-based
+          config.stepAdvanceCallback(prevStep);
         }
       }
     }
