@@ -80,5 +80,6 @@ module.exports = {
   findGuideById: pendoActions.findGuideById,
   findGuideByName: pendoActions.findGuideByName,
   getGuides: pendoActions.getGuides,
-  initialize: initialize
+  initialize: initialize,
+  reloadGuides: pendoActions.reloadGuides
 }

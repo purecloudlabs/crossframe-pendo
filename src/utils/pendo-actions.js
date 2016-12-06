@@ -75,6 +75,16 @@ function registerEventHandler (eventName, eventHandler) {
   });
 }
 
+// force reload guides
+function reloadGuides () {
+  return waitForPendo()
+  .then(function (pendo) {
+    return pendo.loadGuides().then(function () {
+      pendo.events.guidesLoaded();
+    });
+  });
+}
+
 // attempt to show a step
 function showStep (guideId, stepId) {
   return findGuideById(guideId)
@@ -113,5 +123,6 @@ module.exports = {
   getGuides: getGuides,
   launchGuide: launchGuide,
   registerEventHandler: registerEventHandler,
+  reloadGuides: reloadGuides,
   showStep: showStep
 }
