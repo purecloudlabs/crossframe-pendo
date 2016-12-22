@@ -79,6 +79,18 @@ window.crossframePendo.getGuides().then(function (guides) {
 });
 ```
 
+### reloadGuides
+
+```javascript
+window.crossframePendo.reloadGuides()
+.then(function () {
+  return window.crossframePendo.findGuideById("1234");
+})
+.then(function (guide) {
+  // here's your guide (freshness guaranteed!)
+});
+```
+
 ## Contributing
 
 Pull requests are welcome! Just clone the repo and use `npm install` to get all the devDependencies. All the source files are in `/src`. Running `grunt` will build everything to `/dist`, and will continue to monitor for changes to automatically update the build as you work.

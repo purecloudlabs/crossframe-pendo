@@ -160,7 +160,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	  findGuideById: pendoActions.findGuideById,
 	  findGuideByName: pendoActions.findGuideByName,
 	  getGuides: pendoActions.getGuides,
-	  initialize: initialize
+	  initialize: initialize,
+	  reloadGuides: pendoActions.reloadGuides
 	};
 
 /***/ },
@@ -261,6 +262,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	  });
 	}
 
+	// force reload guides
+	function reloadGuides() {
+	  return waitForPendo().then(function (pendo) {
+	    return pendo.loadGuides().then(function () {
+	      pendo.events.guidesLoaded();
+	    });
+	  });
+	}
+
 	// attempt to show a step
 	function showStep(guideId, stepId) {
 	  return findGuideById(guideId).then(function (guide) {
@@ -300,6 +310,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  getGuides: getGuides,
 	  launchGuide: launchGuide,
 	  registerEventHandler: registerEventHandler,
+	  reloadGuides: reloadGuides,
 	  showStep: showStep
 	};
 
