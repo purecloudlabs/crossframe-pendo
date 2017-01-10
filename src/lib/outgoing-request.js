@@ -7,7 +7,7 @@ class OutgoingRequest extends Request {
     super(request);
     this.promise = new Promise((resolve, reject) => {
       this.resolve = resolve;
-      window.setTimeout(reject, 5000);
+      window.setTimeout(reject, timeout);
     });
   }
 

@@ -5,7 +5,8 @@ let rpc = require('./lib/rpc');
 // default configuration options
 let config = {
   errorCallback: function () {},
-  stepAdvanceCallback: function () {}
+  stepAdvanceCallback: function () {},
+  timeout: 10 * 1000
 }
 
 // initial setup
@@ -53,7 +54,7 @@ function registerGuideCallbacks (guide) {
     if (guide.isShown()) {
       rpc.resolveRequest('launchGuide', [guide.id]);
     } else {
-      rpc.tryAdjacentFrames('launchGuide', [guide.id])
+      rpc.tryAdjacentFrames('launchGuide', [guide.id], config.timeout)
       .catch(function () {
         config.errorCallback({
           errorType: 'GUIDE.LAUNCH',
@@ -67,7 +68,7 @@ function registerGuideCallbacks (guide) {
       if (step.isShown()) {
         rpc.resolveRequest('showStep', [guide.id, step.id]);
       } else {
-        rpc.tryAdjacentFrames('showStep', [guide.id, step.id])
+        rpc.tryAdjacentFrames('showStep', [guide.id, step.id], config.timeout)
         .catch(function () {
           config.errorCallback({
             errorType: 'STEP.ADVANCE',

@@ -51,6 +51,18 @@ window.crossframePendo.initialize({
 });
 ```
 
+### timeout
+
+The amount of time, in milliseconds, that crossframe-pendo should wait before assuming that attempts to advance a guide in another window has failed, at which point the `errorCallback` will be executed. Defaults to 10000 (10 seconds) unless overridden in your configuration.
+
+Example:
+
+```javascript
+window.crossframePendo.initialize({
+  timeout: 5000
+});
+```
+
 ## Asynchronous Guide Lookup
 
 Included in crossframe-pendo are some useful helper functions which allow for looking up Pendo guides asynchronously. Each of these functions return a promise, greatly simplifying the process of programmatically acccessing Pendo guides when the load state of the client library cannot be guaranteed.
