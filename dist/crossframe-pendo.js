@@ -61,7 +61,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	// default configuration options
 	var config = {
 	  errorCallback: function () {},
-	  stepAdvanceCallback: function () {}
+	  stepAdvanceCallback: function () {},
+	  timeout: 10 * 1000
 	};
 
 	// initial setup
@@ -87,9 +88,49 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	// register callbacks to advance guide in another frame when necessary
 	function registerGuideCallbacks(guide) {
+
+	  // resolve outstanding requests for guides/steps already visible
+	  if (guide.isShown()) {
+	    var _iteratorNormalCompletion = true;
+	    var _didIteratorError = false;
+	    var _iteratorError = undefined;
+
+	    try {
+	      for (var _iterator = guide.steps[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+	        var step = _step.value;
+
+	        if (step.isShown()) {
+	          rpc.resolveRequest('showStep', [guide.id, step.id]);
+	          var stepPosition = guide.getPositionOfStep(step);
+	          if (stepPosition === 1) {
+	            rpc.resolveRequest('launchGuide', [guide.id]);
+	          } else {
+	            var prevStep = guide.steps[stepPosition - 2]; // -2 b/c array 0-based
+	            config.stepAdvanceCallback(prevStep);
+	          }
+	        }
+	      }
+	    } catch (err) {
+	      _didIteratorError = true;
+	      _iteratorError = err;
+	    } finally {
+	      try {
+	        if (!_iteratorNormalCompletion && _iterator.return) {
+	          _iterator.return();
+	        }
+	      } finally {
+	        if (_didIteratorError) {
+	          throw _iteratorError;
+	        }
+	      }
+	    }
+	  }
+
 	  guide.after('launch', function () {
-	    if (!guide.isShown()) {
-	      rpc.tryAdjacentFrames('launchGuide', [guide.id]).catch(function () {
+	    if (guide.isShown()) {
+	      rpc.resolveRequest('launchGuide', [guide.id]);
+	    } else {
+	      rpc.tryAdjacentFrames('launchGuide', [guide.id], config.timeout).catch(function () {
 	        config.errorCallback({
 	          errorType: 'GUIDE.LAUNCH',
 	          guideId: guide.id
@@ -98,58 +139,57 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	  });
 
-	  var _loop = function (step) {
-	    var stepPosition = guide.getPositionOfStep(step); // 1-indexed
-	    var nextStep = guide.steps[stepPosition]; // same numeral b/c 0-indexed
-	    var handleStepAdvancement = function () {
-	      if (nextStep && !nextStep.isShown()) {
-	        rpc.tryAdjacentFrames('showStep', [guide.id, nextStep.id]).catch(function () {
+	  var _loop = function (_step2) {
+	    _step2.after('show', function () {
+	      if (_step2.isShown()) {
+	        rpc.resolveRequest('showStep', [guide.id, _step2.id]);
+	      } else {
+	        rpc.tryAdjacentFrames('showStep', [guide.id, _step2.id], config.timeout).catch(function () {
 	          config.errorCallback({
 	            errorType: 'STEP.ADVANCE',
 	            guideId: guide.id,
-	            stepId: step.id
+	            stepId: _step2.id
 	          });
 	        });
 	      }
-	      config.stepAdvanceCallback(step);
-	    };
-	    if (step.type === 'tooltip') {
-	      step.after('advance', function () {
-	        handleStepAdvancement();
+	    });
+	    if (_step2.type === 'tooltip') {
+	      _step2.after('advance', function () {
+	        config.stepAdvanceCallback(_step2);
 	      });
 	    } else {
 	      // lightbox & banner steps
-	      step.after('hide', function () {
-	        if (step.seenState === 'active') {
+	      _step2.after('hide', function () {
+	        if (_step2.seenState === 'active') {
 	          setTimeout(function () {
-	            handleStepAdvancement();
+	            config.stepAdvanceCallback(_step2);
 	          }, 0);
 	        }
 	      });
 	    }
 	  };
 
-	  var _iteratorNormalCompletion = true;
-	  var _didIteratorError = false;
-	  var _iteratorError = undefined;
+	  var _iteratorNormalCompletion2 = true;
+	  var _didIteratorError2 = false;
+	  var _iteratorError2 = undefined;
 
 	  try {
-	    for (var _iterator = guide.steps[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-	      var step = _step.value;
+	    for (var _iterator2 = guide.steps[Symbol.iterator](), _step3; !(_iteratorNormalCompletion2 = (_step3 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+	      var _step2 = _step3.value;
 
-	      _loop(step);
+	      _loop(_step2);
 	    }
 	  } catch (err) {
-	    _didIteratorError = true;
-	    _iteratorError = err;
+	    _didIteratorError2 = true;
+	    _iteratorError2 = err;
 	  } finally {
 	    try {
-	      if (!_iteratorNormalCompletion && _iterator.return) {
-	        _iterator.return();
+	      if (!_iteratorNormalCompletion2 && _iterator2.return) {
+	        _iterator2.return();
 	      }
 	    } finally {
-	      if (_didIteratorError) {
-	        throw _iteratorError;
+	      if (_didIteratorError2) {
+	        throw _iteratorError2;
 	      }
 	    }
 	  }
@@ -1450,18 +1490,18 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var IncomingRequest = __webpack_require__(8);
+	var OutgoingRequest = __webpack_require__(10);
 	var pendoActions = __webpack_require__(1);
 	var Promise = __webpack_require__(2).Promise;
+	var RequestList = __webpack_require__(11);
 
 	// config values
 	var PROTOCOL = 'crossframe-pendo';
-	var RPC_TIMEOUT = 5000;
 
-	// resolve/reject methods for promises to be fulfilled by RPC responses
-	var responseCallbacks = [];
-
-	// keep track of unfulfilled RPC requests
-	var activeRequests = [];
+	// keep track of incoming & outgoing requests
+	var incomingRequests = new RequestList();
+	var outgoingRequests = new RequestList();
 
 	// build list of all immediate parent and/or child frames
 	function getAdjacentFrames() {
@@ -1516,133 +1556,87 @@ return /******/ (function(modules) { // webpackBootstrap
 	// handle incoming RPC request
 	function handleRpcRequest(messageEvent) {
 	  var messageData = messageEvent.data;
-	  var thisRequest = {
-	    source: messageEvent.source,
-	    method: messageData.method,
-	    args: messageData.args
-	  };
-	  activeRequests.push(thisRequest);
-	  pendoActions[messageData.method].apply(null, messageData.args).then(function (result) {
-	    sendRpcResponse(messageEvent.source, messageData.id, true);
-	    activeRequests = activeRequests.filter(function (request) {
-	      return request !== thisRequest;
-	    });
-	  }).catch(function (error) {
-	    sendRpcResponse(messageEvent.source, messageData.id, false);
-	    activeRequests = activeRequests.filter(function (request) {
-	      return request !== thisRequest;
-	    });
-	  });
+	  var requestAttrs = { method: messageData.method, args: messageData.args };
+	  var incomingRequest = new IncomingRequest(requestAttrs, messageEvent.source);
+	  incomingRequests.add(incomingRequest);
+	  pendoActions[messageData.method].apply(null, messageData.args);
 	}
 
 	// handle incoming RPC response
 	function handleRpcResponse(messageEvent) {
 	  var messageData = messageEvent.data;
+	  var requestAttrs = { method: messageData.method, args: messageData.args };
 	  if (messageData.success) {
-	    responseCallbacks[messageData.id].resolve();
-	  } else {
-	    responseCallbacks[messageData.id].reject();
+	    resolveRequest(messageData.method, messageData.args);
+	  }
+	}
+
+	// try/catch wrapper for window.postMessage
+	function postMessage(frame, message) {
+	  try {
+	    frame.postMessage(message, frame.location.origin);
+	    return true;
+	  } catch (e) {
+	    return false;
+	  }
+	}
+
+	// post message and/or resolve promise as needed to resolve oustanding requests
+	function resolveRequest(method, args) {
+	  var requestAttrs = { method: method, args: args };
+	  if (incomingRequest = incomingRequests.find(requestAttrs)) {
+	    sendRpcResponse(incomingRequest.contentWindow, method, args, true);
+	    incomingRequests.remove(incomingRequest);
+	  }
+	  if (outgoingRequest = outgoingRequests.find(requestAttrs)) {
+	    outgoingRequest.resolve();
+	    outgoingRequests.remove(outgoingRequest);
 	  }
 	}
 
 	// send an RPC request
 	function sendRpcRequest(frame, method, args) {
-	  var response = new Promise(function (resolve, reject) {
-	    responseCallbacks.push({
-	      resolve: resolve,
-	      reject: reject
-	    });
-	    window.setTimeout(reject, RPC_TIMEOUT);
-	  });
-	  var callbackId = responseCallbacks.length - 1;
 	  var message = {
 	    protocol: PROTOCOL,
 	    type: 'rpc:request',
-	    id: callbackId,
 	    method: method,
 	    args: args
 	  };
-	  try {
-	    frame.postMessage(message, frame.location.origin);
-	  } catch (e) {
-	    responseCallbacks[callbackId].reject('UNABLE_TO_POSTMESSAGE');
-	  }
-	  return response;
+	  postMessage(frame, message);
 	}
 
 	// send an RPC response
-	function sendRpcResponse(frame, respondingTo, didSucceed) {
+	function sendRpcResponse(frame, method, args, didSucceed) {
 	  var message = {
 	    protocol: PROTOCOL,
 	    type: 'rpc:response',
-	    id: respondingTo,
+	    method: method,
+	    args: args,
 	    success: didSucceed
 	  };
-	  frame.postMessage(message, frame.location.origin);
+	  postMessage(frame, message);
 	}
 
 	// attempt rpc in all adjacent frames, resolve on any successful attempt
-	function tryAdjacentFrames(method, args) {
-	  return new Promise(function (resolve, reject) {
-	    var failedAttempts = 0;
-	    var adjacentFrames = getAdjacentFrames().filter(function (frame) {
-
-	      // prevent sending same request back to original window
-	      var _iteratorNormalCompletion2 = true;
-	      var _didIteratorError2 = false;
-	      var _iteratorError2 = undefined;
-
-	      try {
-	        for (var _iterator2 = activeRequests[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-	          var activeRequest = _step2.value;
-
-	          if (activeRequest.source === frame) {
-	            if (activeRequest.method === method) {
-	              if (activeRequest.args.length === args.length) {
-	                var argsMatch = false;
-	                for (var i = 0; i < args.length; i++) {
-	                  if (activeRequests.args[i] === args[i]) {
-	                    argsMatch = true;
-	                  }
-	                }
-	                if (argsMatch) {
-	                  return false;
-	                }
-	              }
-	            }
-	          }
-	        }
-	      } catch (err) {
-	        _didIteratorError2 = true;
-	        _iteratorError2 = err;
-	      } finally {
-	        try {
-	          if (!_iteratorNormalCompletion2 && _iterator2.return) {
-	            _iterator2.return();
-	          }
-	        } finally {
-	          if (_didIteratorError2) {
-	            throw _iteratorError2;
-	          }
-	        }
-	      }
-
+	function tryAdjacentFrames(method, args, timeout) {
+	  var requestAttrs = { method: method, args: args };
+	  if (existingOutgoingRequest = outgoingRequests.find(requestAttrs)) {
+	    return existingOutgoingRequest.promise;
+	  }
+	  var originalIncomingRequest = incomingRequests.find(requestAttrs);
+	  var frames = getAdjacentFrames().filter(function (adjacentFrame) {
+	    if (originalIncomingRequest) {
+	      return originalIncomingRequest.contentWindow !== adjacentFrame;
+	    } else {
 	      return true;
-	    });
-	    if (!adjacentFrames.length) {
-	      reject();
 	    }
-	    adjacentFrames.forEach(function (frame) {
-	      sendRpcRequest(frame, method, args).then(function (response) {
-	        resolve();
-	      }).catch(function () {
-	        failedAttempts += 1;
-	        if (failedAttempts = adjacentFrames.length) {
-	          reject();
-	        }
-	      });
-	    });
 	  });
+	  var outgoingRequest = new OutgoingRequest(requestAttrs, timeout);
+	  outgoingRequests.add(outgoingRequest);
+	  frames.forEach(function (frame) {
+	    sendRpcRequest(frame, method, args);
+	  });
+	  return outgoingRequest.promise;
 	}
 
 	// start listening for messages from adjacent frames
@@ -1650,8 +1644,179 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	// export public methods
 	module.exports = {
+	  resolveRequest: resolveRequest,
 	  tryAdjacentFrames: tryAdjacentFrames
 	};
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var Request = __webpack_require__(9);
+
+	var IncomingRequest = function (_Request) {
+	  _inherits(IncomingRequest, _Request);
+
+	  function IncomingRequest(request, contentWindow) {
+	    _classCallCheck(this, IncomingRequest);
+
+	    var _this = _possibleConstructorReturn(this, (IncomingRequest.__proto__ || Object.getPrototypeOf(IncomingRequest)).call(this, request));
+
+	    _this.contentWindow = contentWindow;
+	    return _this;
+	  }
+
+	  return IncomingRequest;
+	}(Request);
+
+	module.exports = IncomingRequest;
+
+/***/ },
+/* 9 */
+/***/ function(module, exports) {
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var Request = function () {
+	  function Request(request) {
+	    _classCallCheck(this, Request);
+
+	    this.method = request.method;
+	    this.args = request.args;
+	  }
+
+	  _createClass(Request, [{
+	    key: "argsMatch",
+	    value: function argsMatch(args) {
+	      if (this.args.length !== args.length) {
+	        return false;
+	      }
+	      for (var i = 0; i < this.args.length; i++) {
+	        if (this.args[i] !== args[i]) {
+	          return false;
+	        }
+	      }
+	      return true;
+	    }
+	  }]);
+
+	  return Request;
+	}();
+
+	module.exports = Request;
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var Promise = __webpack_require__(2).Promise;
+	var Request = __webpack_require__(9);
+
+	var OutgoingRequest = function (_Request) {
+	  _inherits(OutgoingRequest, _Request);
+
+	  function OutgoingRequest(request, timeout) {
+	    _classCallCheck(this, OutgoingRequest);
+
+	    var _this = _possibleConstructorReturn(this, (OutgoingRequest.__proto__ || Object.getPrototypeOf(OutgoingRequest)).call(this, request));
+
+	    _this.promise = new Promise(function (resolve, reject) {
+	      _this.resolve = resolve;
+	      window.setTimeout(reject, timeout);
+	    });
+	    return _this;
+	  }
+
+	  return OutgoingRequest;
+	}(Request);
+
+	module.exports = OutgoingRequest;
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var Request = __webpack_require__(9);
+
+	var RequestList = function () {
+	  function RequestList() {
+	    _classCallCheck(this, RequestList);
+
+	    this.requests = [];
+	  }
+
+	  _createClass(RequestList, [{
+	    key: 'add',
+	    value: function add(request) {
+	      if (request instanceof Request) {
+	        return this.requests.push(request);
+	      } else {
+	        throw new Error('Argument must be of type \'Request\'');
+	      }
+	    }
+	  }, {
+	    key: 'find',
+	    value: function find(request) {
+	      var _iteratorNormalCompletion = true;
+	      var _didIteratorError = false;
+	      var _iteratorError = undefined;
+
+	      try {
+	        for (var _iterator = this.requests[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+	          var thisRequest = _step.value;
+
+	          var methodsMatch = thisRequest.method === request.method;
+	          var argsMatch = thisRequest.argsMatch(request.args);
+	          if (methodsMatch && argsMatch) {
+	            return thisRequest;
+	          }
+	        }
+	      } catch (err) {
+	        _didIteratorError = true;
+	        _iteratorError = err;
+	      } finally {
+	        try {
+	          if (!_iteratorNormalCompletion && _iterator.return) {
+	            _iterator.return();
+	          }
+	        } finally {
+	          if (_didIteratorError) {
+	            throw _iteratorError;
+	          }
+	        }
+	      }
+	    }
+	  }, {
+	    key: 'remove',
+	    value: function remove(request) {
+	      this.requests = this.requests.filter(function (thisRequest) {
+	        return thisRequest !== request;
+	      });
+	    }
+	  }]);
+
+	  return RequestList;
+	}();
+
+	module.exports = RequestList;
 
 /***/ }
 /******/ ])
