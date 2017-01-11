@@ -79,9 +79,10 @@ function registerEventHandler (eventName, eventHandler) {
 function reloadGuides () {
   return waitForPendo()
   .then(function (pendo) {
-    return pendo.loadGuides().then(function () {
+    pendo.loadGuides().then(function () {
       pendo.events.guidesLoaded();
     });
+    return guidesMonitor();
   });
 }
 
