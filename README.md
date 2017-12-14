@@ -1,5 +1,7 @@
 # crossframe-pendo
 
+### NOTICE: This code is now obsolete. The latest Pendo agent natively supports guides with steps targeting elements across multiple iframes. This library should no longer be used, and should be removed from any installations using the latest Pendo agent as it now causes conflicts.
+
 This library works alongside the standard [Pendo](http://pendo.io) client library to add support for walkthroughs that need to display guides in multiple iframes.
 
 The minified build is just 13KB, and requires very little configuration, so it should be easy to get it added to your project!
